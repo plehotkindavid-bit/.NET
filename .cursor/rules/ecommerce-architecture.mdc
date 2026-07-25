@@ -1,0 +1,23 @@
+---
+description: ECommerce Cores architecture and database safety rules
+globs:
+  - "API/**/*.cs"
+  - "cores/**/*.md"
+  - "contracts/**/*.json"
+alwaysApply: true
+---
+
+# ECommerce Cores Cursor Rule
+
+- Treat SQLite as the source of truth for runtime commerce data.
+- Use Entity Framework Core by default.
+- Access data through StoreContext and application services.
+- Never invent database results.
+- Never set databaseChecked=true unless code actually queried the database.
+- Do not execute arbitrary user-provided SQL.
+- Use async EF Core methods and SaveChangesAsync for mutations.
+- Use transactions when one business operation modifies multiple tables.
+- Do not place real customer, order, payment, or production database data in Git.
+- Keep Product, Stock, Price, Rules, Order, and Payment responsibilities separated.
+- Before coding, identify the task ID and relevant core ID.
+- After coding, summarize changed files, tests run, and remaining risks.
