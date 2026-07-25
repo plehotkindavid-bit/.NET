@@ -1,6 +1,26 @@
-@API_HostAddress = http://localhost:5281
+@API_HostAddress = http://localhost:5053
 
-GET {{API_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{API_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Laptop",
+  "description": "Gaming laptop",
+  "price": 3000,
+  "pictureUrl": "laptop.jpg",
+  "type": "Computer",
+  "brand": "Asus",
+  "quantitiesInStock": 10
+}
 
 ###
+
+
+POST http://localhost:5053/api/manager/execute
+Content-Type: application/json
+
+{
+  "action": "change_stock",
+  "productId": 1,
+  "value": 5
+}
