@@ -1,0 +1,24 @@
+name: Validate Foundation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required architecture files
+        shell: bash
+        run: |
+          test -f AGENTS.md
+          test -f contracts/core-result.schema.json
+          test -f cores/headliner-core.md
+          test -f cores/manager-core.md
+          test -f cores/product-core.md
+          test -f cores/stock-core.md
+          test -f cores/rules-core.md
+          test -f cores/price-core.md
+          test -f cores/order-core.md
+          python -m json.tool contracts/core-result.schema.json > /dev/null

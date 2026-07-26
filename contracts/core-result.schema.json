@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecommerce-cores.local/contracts/core-result.schema.json",
+  "title": "CoreResult",
+  "type": "object",
+  "required": [
+    "moduleId",
+    "operationId",
+    "operation",
+    "status",
+    "data",
+    "errors",
+    "missingData",
+    "nextModuleId",
+    "databaseChecked",
+    "databaseOperation",
+    "recordIds"
+  ],
+  "properties": {
+    "moduleId": { "type": "string", "pattern": "^CORE-[A-Z]+-[0-9]{3}$" },
+    "operationId": { "type": "string", "minLength": 1 },
+    "operation": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["success", "not_found", "needs_data", "rejected", "error"]
+    },
+    "data": { "type": "object" },
+    "errors": { "type": "array", "items": { "type": "string" } },
+    "missingData": { "type": "array", "items": { "type": "string" } },
+    "nextModuleId": { "type": "string" },
+    "databaseChecked": { "type": "boolean" },
+    "databaseOperation": { "type": "string" },
+    "recordIds": {
+      "type": "array",
+      "items": { "type": ["integer", "string"] }
+    }
+  },
+  "additionalProperties": false
+}
