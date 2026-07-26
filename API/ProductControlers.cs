@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using API.Data ; 
-using API.Enetites; 
+using API.Cores;
+using API.Data;
+using API.Enetites;
 using API.Services;
+
 namespace API.Data;
 
 
@@ -20,104 +21,61 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult> GetProduct(int id)
+    public async Task<IActionResult> GetProduct(int id)
     {
-        if (id <= 0)
-        {
-            return BadRequest(new
-            {
-                status = "needs_data",
-                missingData = new[] { "productId" }
-            });
-        }
+        var result = await _productService.GetByIdAsync(id);
 
-        Product? product;
+        return ToHttpResult(result);
+    }
 
-        try
-        {
-            product = await _productService.GetByIdAsync(id);
-        }
-        catch
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, new
-            {
-                status = "error"
-            });
-        }
+    [HttpGet("search")]
+    public async Task<IActionResult> FindProduct(
+        [FromQuery] int? productId,
+        [FromQuery] string? name)
+    {
+        var result = await _productService.SearchAsync(productId, name);
 
-        if (product == null)
-        {
-            return NotFound(new
-            {
-                status = "not_found",
-                productId = id
-            });
-        }
-
-        return Ok(new
-        {
-            status = "success",
-            data = product
-        });
+        return ToHttpResult(result);
     }
 
     [HttpGet]
-    public async Task<ActionResult> FindProduct([FromQuery] int? productId, [FromQuery] string? name)
+    public async Task<IActionResult> GetProducts()
     {
-        if (productId.HasValue)
-        {
-            return await GetProduct(productId.Value);
-        }
+        var result = await _productService.GetAllAsync();
 
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return BadRequest(new
-            {
-                status = "needs_data",
-                missingData = new[] { "productId or exact name" }
-            });
-        }
-
-        Product? product;
-
-        try
-        {
-            product = await _productService.GetByExactNameAsync(name);
-        }
-        catch
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, new
-            {
-                status = "error"
-            });
-        }
-
-        if (product == null)
-        {
-            return NotFound(new
-            {
-                status = "not_found",
-                name
-            });
-        }
-
-        return Ok(new
-        {
-            status = "success",
-            data = product
-        });
+        return ToHttpResult(result);
     }
 
     [HttpPost]
-public async Task<ActionResult<Product>> CreateProduct(Product product)
-{
-    _context.Products.Add(product);
-    await _context.SaveChangesAsync();
+    public async Task<ActionResult<Product>> CreateProduct(Product product)
+    {
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
 
-    return CreatedAtAction(
-        nameof(GetProduct),
-        new { id = product.Id },
-        product
-    );
-}
+        return CreatedAtAction(
+            nameof(GetProduct),
+            new { id = product.Id },
+            product
+        );
+    }
+
+    private IActionResult ToHttpResult(CoreResult result)
+    {
+        return result.Status switch
+        {
+            CoreStatuses.Success => Ok(result),
+            CoreStatuses.NotFound => NotFound(result),
+            CoreStatuses.NeedsData => BadRequest(result),
+            CoreStatuses.Rejected => BadRequest(result),
+            CoreStatuses.Error => StatusCode(
+                StatusCodes.Status500InternalServerError,
+                result),
+            _ => StatusCode(
+                StatusCodes.Status500InternalServerError,
+                CoreResultFactory.Error(
+                    "CORE-PRODUCT-001",
+                    "map_product_result",
+                    "Unable to process product result."))
+        };
+    }
 }

@@ -78,7 +78,9 @@ public static class CoreResultFactory
     public static CoreResult Error(
         string module,
         string operation,
-        string error)
+        string error,
+        bool databaseChecked = false,
+        string databaseOperation = "")
     {
         return new CoreResult
         {
@@ -86,7 +88,8 @@ public static class CoreResultFactory
             Operation = operation,
             Status = CoreStatuses.Error,
             Errors = [error],
-            DatabaseChecked = false
+            DatabaseChecked = databaseChecked,
+            DatabaseOperation = databaseOperation
         };
     }
 }
