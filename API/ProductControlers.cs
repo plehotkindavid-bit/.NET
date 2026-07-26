@@ -23,9 +23,10 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetProduct(int id)
     {
-        var result = await _productService.GetByIdAsync(id);
+        var operationId = GetOperationId();
+        var result = await _productService.GetByIdAsync(operationId, id);
 
-        return ToHttpResult(result);
+        return ToHttpResult(result, operationId);
     }
 
     [HttpGet("search")]
@@ -33,17 +34,22 @@ public class ProductsController : ControllerBase
         [FromQuery] int? productId,
         [FromQuery] string? name)
     {
-        var result = await _productService.SearchAsync(productId, name);
+        var operationId = GetOperationId();
+        var result = await _productService.SearchAsync(
+            operationId,
+            productId,
+            name);
 
-        return ToHttpResult(result);
+        return ToHttpResult(result, operationId);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetProducts()
     {
-        var result = await _productService.GetAllAsync();
+        var operationId = GetOperationId();
+        var result = await _productService.GetAllAsync(operationId);
 
-        return ToHttpResult(result);
+        return ToHttpResult(result, operationId);
     }
 
     [HttpPost]
@@ -59,7 +65,19 @@ public class ProductsController : ControllerBase
         );
     }
 
-    private IActionResult ToHttpResult(CoreResult result)
+    private string GetOperationId()
+    {
+        var suppliedOperationId = Request.Headers["X-Operation-Id"]
+            .FirstOrDefault();
+
+        return string.IsNullOrWhiteSpace(suppliedOperationId)
+            ? Guid.NewGuid().ToString()
+            : suppliedOperationId;
+    }
+
+    private IActionResult ToHttpResult(
+        CoreResult result,
+        string operationId)
     {
         return result.Status switch
         {
@@ -74,6 +92,7 @@ public class ProductsController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 CoreResultFactory.Error(
                     "CORE-PRODUCT-001",
+                    operationId,
                     "map_product_result",
                     "Unable to process product result."))
         };

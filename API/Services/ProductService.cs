@@ -1,5 +1,6 @@
 using API.Cores;
 using API.Data;
+using API.Dtos;
 using API.Enetites;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,31 +25,36 @@ public class ProductService
     }
 
     public async Task<CoreResult> SearchAsync(
+        string operationId,
         int? productId,
         string? exactName)
     {
         if (productId.HasValue)
         {
-            return await GetByIdAsync(productId.Value);
+            return await GetByIdAsync(operationId, productId.Value);
         }
 
         if (string.IsNullOrWhiteSpace(exactName))
         {
             return CoreResultFactory.NeedsData(
                 Module,
+                operationId,
                 GetByNameOperation,
                 ["productId or name"]);
         }
 
-        return await GetByExactNameAsync(exactName);
+        return await GetByExactNameAsync(operationId, exactName);
     }
 
-    public async Task<CoreResult> GetByIdAsync(int productId)
+    public async Task<CoreResult> GetByIdAsync(
+        string operationId,
+        int productId)
     {
         if (productId <= 0)
         {
             return CoreResultFactory.Rejected(
                 Module,
+                operationId,
                 GetByIdOperation,
                 "Product ID must be greater than zero.");
         }
@@ -65,6 +71,7 @@ public class ProductService
             {
                 return CoreResultFactory.NotFound(
                     Module,
+                    operationId,
                     GetByIdOperation,
                     "Product was not found by ID.",
                     databaseChecked: true,
@@ -73,8 +80,9 @@ public class ProductService
 
             return CoreResultFactory.Success(
                 Module,
+                operationId,
                 GetByIdOperation,
-                product,
+                new { product = ToReadDto(product) },
                 databaseChecked: true,
                 databaseOperation: databaseOperation,
                 recordIds: [product.Id]);
@@ -87,6 +95,7 @@ public class ProductService
 
             return CoreResultFactory.Error(
                 Module,
+                operationId,
                 GetByIdOperation,
                 "Unable to read product data.",
                 databaseChecked: false,
@@ -95,7 +104,9 @@ public class ProductService
         }
     }
 
-    public async Task<CoreResult> GetByExactNameAsync(string exactName)
+    public async Task<CoreResult> GetByExactNameAsync(
+        string operationId,
+        string exactName)
     {
         const string databaseOperation =
             "Queried StoreContext.Products with FirstOrDefaultAsync by exact product name.";
@@ -109,6 +120,7 @@ public class ProductService
             {
                 return CoreResultFactory.NotFound(
                     Module,
+                    operationId,
                     GetByNameOperation,
                     "Product was not found by exact name.",
                     databaseChecked: true,
@@ -117,8 +129,9 @@ public class ProductService
 
             return CoreResultFactory.Success(
                 Module,
+                operationId,
                 GetByNameOperation,
-                product,
+                new { product = ToReadDto(product) },
                 databaseChecked: true,
                 databaseOperation: databaseOperation,
                 recordIds: [product.Id]);
@@ -131,6 +144,7 @@ public class ProductService
 
             return CoreResultFactory.Error(
                 Module,
+                operationId,
                 GetByNameOperation,
                 "Unable to read product data.",
                 databaseChecked: false,
@@ -139,7 +153,7 @@ public class ProductService
         }
     }
 
-    public async Task<CoreResult> GetAllAsync()
+    public async Task<CoreResult> GetAllAsync(string operationId)
     {
         const string databaseOperation =
             "Queried StoreContext.Products with ToListAsync.";
@@ -147,14 +161,18 @@ public class ProductService
         try
         {
             var products = await _context.Products.ToListAsync();
+            var productDtos = products
+                .Select(ToReadDto)
+                .ToList();
 
             return CoreResultFactory.Success(
                 Module,
+                operationId,
                 GetAllOperation,
-                products,
+                new { products = productDtos },
                 databaseChecked: true,
                 databaseOperation: databaseOperation,
-                recordIds: products.Select(product => product.Id));
+                recordIds: products.Select(product => (object)product.Id));
         }
         catch (Exception exception)
         {
@@ -164,11 +182,26 @@ public class ProductService
 
             return CoreResultFactory.Error(
                 Module,
+                operationId,
                 GetAllOperation,
                 "Unable to read product data.",
                 databaseChecked: false,
                 databaseOperation:
                     "EF Core product list query failed.");
         }
+    }
+
+    private static ProductReadDto ToReadDto(Product product)
+    {
+        return new ProductReadDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Description = product.Description,
+            Price = product.Price,
+            PictureUrl = product.PictureUrl,
+            Type = product.Type,
+            Brand = product.Brand
+        };
     }
 }
